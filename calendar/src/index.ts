@@ -1,5 +1,4 @@
-//
-// Copyright © 2020, 2021 Anticrm Platform Contributors.
+// Copyright © 2022 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -11,320 +10,209 @@
 //
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
-import activity from '@hcengineering/activity'
-import {
-  type Calendar,
-  type CalendarEventPresenter,
-  type Event,
-  type ExternalCalendar,
-  type ReccuringEvent,
-  type ReccuringInstance,
-  type RecurringRule,
-  type Visibility
-} from '@hcengineering/calendar'
-import { type Contact } from '@hcengineering/contact'
-import { DateRangeMode, type Domain, IndexKind, type Markup, type Ref, type Timestamp } from '@hcengineering/core'
-import {
-  ArrOf,
-  type Builder,
-  Collection,
-  Index,
-  Mixin,
-  Model,
-  Prop,
-  ReadOnly,
-  TypeBoolean,
-  TypeDate,
-  TypeMarkup,
-  TypeRef,
-  TypeString,
-  TypeTimestamp,
-  UX
-} from '@hcengineering/model'
-import attachment from '@hcengineering/model-attachment'
-import contact from '@hcengineering/model-contact'
-import core, { TAttachedDoc, TClass } from '@hcengineering/model-core'
-import { TProject } from '@hcengineering/model-task'
-import view, { createAction } from '@hcengineering/model-view'
-import notification from '@hcengineering/notification'
-import setting from '@hcengineering/setting'
-import { type AnyComponent } from '@hcengineering/ui/src/types'
-import calendar from './plugin'
+import { Contact } from '@hcengineering/contact'
+import type { AttachedDoc, Class, Doc, Markup, Mixin, Ref, Space, Timestamp } from '@hcengineering/core'
+import { NotificationType } from '@hcengineering/notification'
+import type { Asset, IntlString, Metadata, Plugin } from '@hcengineering/platform'
+import { plugin } from '@hcengineering/platform'
+import type { Handler, IntegrationType } from '@hcengineering/setting'
+import { AnyComponent } from '@hcengineering/ui'
 
-export * from '@hcengineering/calendar'
-export { calendarId } from '@hcengineering/calendar'
-export { calendarOperation } from './migration'
+/**
+ * @public
+ */
+export type Visibility = 'public' | 'freeBusy' | 'private'
 
-export const DOMAIN_CALENDAR = 'calendar' as Domain
-
-@Model(calendar.class.Calendar, core.class.Space)
-@UX(calendar.string.Calendar, calendar.icon.Calendar)
-export class TCalendar extends TProject implements Calendar {
-  visibility!: Visibility
+/**
+ * @public
+ */
+export interface Calendar extends Space {
+  visibility: Visibility
 }
 
-@Model(calendar.class.ExternalCalendar, calendar.class.Calendar)
-@UX(calendar.string.Calendar, calendar.icon.Calendar)
-export class TExternalCalendar extends TCalendar implements ExternalCalendar {
-  default!: boolean
-  externalId!: string
-  externalUser!: string
+/**
+ * @public
+ */
+export interface ExternalCalendar extends Calendar {
+  default: boolean
+  externalId: string
+  externalUser: string
 }
 
-@Model(calendar.class.Event, core.class.AttachedDoc, DOMAIN_CALENDAR)
-@UX(calendar.string.Event, calendar.icon.Calendar)
-export class TEvent extends TAttachedDoc implements Event {
-  declare space: Ref<Calendar>
+/**
+ * @public
+ * RFC5545
+ */
+export interface RecurringRule {
+  freq: 'SECONDLY' | 'MINUTELY' | 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  endDate?: Timestamp
+  count?: number
+  interval?: number
+  bySecond?: number[]
+  byMinute?: number[]
+  byHour?: number[]
+  byDay?: string[]
+  byMonthDay?: number[]
+  byYearDay?: number[]
+  byWeekNo?: number[]
+  byMonth?: number[]
+  bySetPos?: number[]
+  wkst?: 'SU' | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA'
+}
 
-  eventId!: string
+/**
+ * @public
+ */
+export interface ReccuringEvent extends Event {
+  rules: RecurringRule[]
+  exdate: Timestamp[]
+  rdate: Timestamp[]
+  originalStartTime: Timestamp
+  timeZone: string
+}
 
-  @Prop(TypeString(), calendar.string.Title)
-  @Index(IndexKind.FullText)
-    title!: string
+/**
+ * @public
+ */
+export interface Event extends AttachedDoc {
+  space: Ref<Calendar>
+  eventId: string
+  title: string
+  description: Markup
 
-  @Prop(TypeMarkup(), calendar.string.Description)
-  @Index(IndexKind.FullText)
-    description!: Markup
+  location?: string
 
-  @Prop(TypeString(), calendar.string.Location, { icon: calendar.icon.Location })
-  @Index(IndexKind.FullText)
-    location?: string
+  allDay: boolean
 
-  @Prop(TypeBoolean(), calendar.string.AllDay)
-  @ReadOnly()
-    allDay!: boolean
+  // Event scheduled date
+  date: Timestamp
 
-  @Prop(TypeDate(DateRangeMode.DATETIME), calendar.string.Date)
-    date!: Timestamp
+  // Event due date for long events.
+  dueDate: Timestamp
 
-  @Prop(TypeDate(DateRangeMode.DATETIME), calendar.string.DueTo)
-    dueDate!: Timestamp
+  attachments?: number
 
-  @Prop(Collection(attachment.class.Attachment), attachment.string.Attachments, { shortLabel: attachment.string.Files })
-    attachments?: number
+  participants: Ref<Contact>[]
 
-  @Prop(ArrOf(TypeRef(contact.class.Contact)), calendar.string.Participants)
-    participants!: Ref<Contact>[]
+  externalParticipants?: string[]
 
-  @Prop(ArrOf(TypeTimestamp()), calendar.string.Reminders)
-    reminders?: number[]
-
-  @Prop(ArrOf(TypeString()), calendar.string.ExternalParticipants)
-    externalParticipants?: string[]
-
-  access!: 'freeBusyReader' | 'reader' | 'writer' | 'owner'
+  reminders?: Timestamp[]
 
   visibility?: Visibility
+
+  access: 'freeBusyReader' | 'reader' | 'writer' | 'owner'
 
   timeZone?: string
 }
 
-@Model(calendar.class.ReccuringEvent, calendar.class.Event)
-@UX(calendar.string.ReccuringEvent, calendar.icon.Calendar)
-export class TReccuringEvent extends TEvent implements ReccuringEvent {
-  declare timeZone: string
-  rules!: RecurringRule[]
-  exdate!: Timestamp[]
-  rdate!: Timestamp[]
-  originalStartTime!: Timestamp
-}
-
-@Model(calendar.class.ReccuringInstance, calendar.class.Event)
-@UX(calendar.string.Event, calendar.icon.Calendar)
-export class TReccuringInstance extends TReccuringEvent implements ReccuringInstance {
-  recurringEventId!: Ref<ReccuringEvent>
+/**
+ * @public
+ * use for an instance of a recurring event
+ */
+export interface ReccuringInstance extends ReccuringEvent {
+  recurringEventId: string
+  originalStartTime: number
   isCancelled?: boolean
   virtual?: boolean
 }
 
-@Mixin(calendar.mixin.CalendarEventPresenter, core.class.Class)
-export class TCalendarEventPresenter extends TClass implements CalendarEventPresenter {
-  presenter!: AnyComponent
+/**
+ * @public
+ */
+export interface CalendarEventPresenter extends Class<Event> {
+  presenter: AnyComponent
 }
 
-export function createModel (builder: Builder): void {
-  builder.createModel(
-    TCalendar,
-    TExternalCalendar,
-    TReccuringEvent,
-    TReccuringInstance,
-    TEvent,
-    TCalendarEventPresenter
-  )
+/**
+ * @public
+ */
+export const calendarId = 'calendar' as Plugin
 
-  builder.mixin(calendar.class.Event, core.class.Class, calendar.mixin.CalendarEventPresenter, {
-    presenter: calendar.component.CalendarEventPresenter
-  })
+/**
+ * @public
+ */
+const calendarPlugin = plugin(calendarId, {
+  class: {
+    Calendar: '' as Ref<Class<Calendar>>,
+    ExternalCalendar: '' as Ref<Class<ExternalCalendar>>,
+    Event: '' as Ref<Class<Event>>,
+    ReccuringEvent: '' as Ref<Class<ReccuringEvent>>,
+    ReccuringInstance: '' as Ref<Class<ReccuringInstance>>
+  },
+  mixin: {
+    CalendarEventPresenter: '' as Ref<Mixin<CalendarEventPresenter>>
+  },
+  icon: {
+    Calendar: '' as Asset,
+    Location: '' as Asset,
+    Reminder: '' as Asset,
+    Notifications: '' as Asset,
+    Watch: '' as Asset,
+    Description: '' as Asset,
+    Participants: '' as Asset,
+    Repeat: '' as Asset,
+    Globe: '' as Asset,
+    Public: '' as Asset,
+    Hidden: '' as Asset,
+    Private: '' as Asset
+  },
+  image: {
+    Permissions: '' as Asset
+  },
+  space: {
+    // deprecated
+    PersonalEvents: '' as Ref<Calendar>
+  },
+  app: {
+    Calendar: '' as Ref<Doc>
+  },
+  component: {
+    CreateEvent: '' as AnyComponent,
+    EditEvent: '' as AnyComponent,
+    CalendarView: '' as AnyComponent,
+    PersonsPresenter: '' as AnyComponent,
+    Events: '' as AnyComponent,
+    DateTimePresenter: '' as AnyComponent,
+    DocReminder: '' as AnyComponent,
+    ConnectApp: '' as AnyComponent
+  },
+  string: {
+    Title: '' as IntlString,
+    Calendar: '' as IntlString,
+    Description: '' as IntlString,
+    Date: '' as IntlString,
+    DueTo: '' as IntlString,
+    Calendars: '' as IntlString,
+    CreateCalendar: '' as IntlString,
+    Location: '' as IntlString,
+    Participants: '' as IntlString,
+    NoParticipants: '' as IntlString,
+    PersonsLabel: '' as IntlString,
+    EventNumber: '' as IntlString,
+    Reminders: '' as IntlString,
+    Today: '' as IntlString,
+    Visibility: '' as IntlString,
+    Public: '' as IntlString,
+    FreeBusy: '' as IntlString,
+    Busy: '' as IntlString,
+    Private: '' as IntlString,
+    NotAllPermissions: '' as IntlString
+  },
+  handler: {
+    DisconnectHandler: '' as Handler
+  },
+  integrationType: {
+    Calendar: '' as Ref<IntegrationType>
+  },
+  metadata: {
+    CalendarServiceURL: '' as Metadata<string>
+  },
+  ids: {
+    ReminderNotification: '' as Ref<NotificationType>,
+    NoAttached: '' as Ref<Event>
+  }
+})
 
-  builder.createDoc(
-    view.class.Viewlet,
-    core.space.Model,
-    {
-      attachTo: calendar.class.Event,
-      descriptor: calendar.viewlet.Calendar,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      config: [''],
-      configOptions: {
-        hiddenKeys: ['title', 'date']
-      }
-    },
-    calendar.viewlet.CalendarEvent
-  )
-
-  builder.createDoc(
-    setting.class.IntegrationType,
-    core.space.Model,
-    {
-      label: calendar.string.Calendar,
-      description: calendar.string.IntegrationDescr,
-      icon: calendar.component.CalendarIntegrationIcon,
-      allowMultiple: true,
-      createComponent: calendar.component.IntegrationConnect,
-      onDisconnect: calendar.handler.DisconnectHandler,
-      reconnectComponent: calendar.component.IntegrationConnect,
-      configureComponent: calendar.component.IntegrationConfigure
-    },
-    calendar.integrationType.Calendar
-  )
-
-  builder.createDoc(
-    notification.class.NotificationGroup,
-    core.space.Model,
-    {
-      label: calendar.string.Calendar,
-      icon: calendar.icon.Calendar
-    },
-    calendar.ids.CalendarNotificationGroup
-  )
-
-  builder.mixin(calendar.class.Event, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['participants']
-  })
-
-  builder.createDoc(
-    notification.class.NotificationType,
-    core.space.Model,
-    {
-      hidden: false,
-      generated: false,
-      label: calendar.string.Reminder,
-      group: calendar.ids.CalendarNotificationGroup,
-      txClasses: [],
-      objectClass: calendar.class.Event,
-      allowedForAuthor: true,
-      templates: {
-        textTemplate: 'Reminder: {doc}',
-        htmlTemplate: 'Reminder: {doc}',
-        subjectTemplate: 'Reminder: {doc}'
-      },
-      providers: {
-        [notification.providers.PlatformNotification]: true,
-        [notification.providers.EmailNotification]: false
-      }
-    },
-    calendar.ids.ReminderNotification
-  )
-
-  builder.createDoc(
-    activity.class.TxViewlet,
-    core.space.Model,
-    {
-      objectClass: calendar.class.Event,
-      icon: calendar.icon.Reminder,
-      txClass: core.class.TxUpdateDoc,
-      label: calendar.string.Reminder,
-      component: calendar.activity.ReminderViewlet,
-      display: 'emphasized',
-      editable: false,
-      hideOnRemove: true
-    },
-    calendar.ids.ReminderViewlet
-  )
-
-  builder.createDoc(
-    activity.class.DocUpdateMessageViewlet,
-    core.space.Model,
-    {
-      objectClass: calendar.class.Event,
-      icon: calendar.icon.Reminder,
-      action: 'update',
-      hideIfRemoved: true
-    },
-    calendar.ids.UpdateRemainderActivityViewlet
-  )
-
-  builder.createDoc(
-    view.class.ViewletDescriptor,
-    core.space.Model,
-    {
-      label: calendar.string.Calendar,
-      icon: calendar.icon.Calendar,
-      component: calendar.component.CalendarView
-    },
-    calendar.viewlet.Calendar
-  )
-
-  builder.createDoc(
-    view.class.ActionCategory,
-    core.space.Model,
-    { label: calendar.string.Calendar, visible: true },
-    calendar.category.Calendar
-  )
-
-  createAction(
-    builder,
-    {
-      action: calendar.actionImpl.SaveEventReminder,
-      label: calendar.string.RemindMeAt,
-      icon: calendar.icon.Reminder,
-      input: 'focus',
-      category: calendar.category.Calendar,
-      target: calendar.class.Event,
-      context: {
-        mode: 'context',
-        group: 'create'
-      }
-    },
-    calendar.action.SaveEventReminder
-  )
-
-  createAction(
-    builder,
-    {
-      action: calendar.actionImpl.DeleteRecEvent,
-      override: [view.action.Delete],
-      label: view.string.Delete,
-      icon: view.icon.Delete,
-      keyBinding: ['Meta + Backspace'],
-      category: view.category.General,
-      input: 'any',
-      target: calendar.class.ReccuringInstance,
-      context: { mode: ['context', 'browser'], group: 'remove' }
-    },
-    calendar.action.DeleteRecEvent
-  )
-
-  builder.mixin(calendar.class.Event, core.class.Class, view.mixin.ObjectEditor, {
-    editor: calendar.component.EditEvent
-  })
-
-  builder.mixin(calendar.class.Event, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: calendar.component.EventPresenter
-  })
-
-  builder.createDoc(core.class.DomainIndexConfiguration, core.space.Model, {
-    domain: DOMAIN_CALENDAR,
-    disabled: [
-      { attachedToClass: 1 },
-      { modifiedOn: 1 },
-      { modifiedBy: 1 },
-      { createdBy: 1 },
-      { createdOn: -1 },
-      { state: 1 }
-    ]
-  })
-}
-
-export default calendar
+export default calendarPlugin
+export * from './utils'
