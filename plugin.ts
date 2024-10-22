@@ -1,6 +1,6 @@
 //
 // Copyright © 2020, 2021 Anticrm Platform Contributors.
-// Copyright © 2021, 2023 Hardcore Engineering Inc.
+// Copyright © 2021 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -14,72 +14,111 @@
 // limitations under the License.
 //
 
-import { type Class, type Ref } from '@hcengineering/core'
-import { type IntlString, type Metadata, type Plugin, plugin } from '@hcengineering/platform'
-import { type RefInputActionItem } from './types'
+import type { IntlString, Metadata, Plugin } from '@hcengineering/platform'
+import { plugin } from '@hcengineering/platform'
+import { type AnyComponent } from './types'
 
 /**
  * @public
  */
-export const textEditorId = 'text-editor' as Plugin
+export const uiId = 'ui' as Plugin
 
-export default plugin(textEditorId, {
-  class: {
-    RefInputActionItem: '' as Ref<Class<RefInputActionItem>>
+export const uis = plugin(uiId, {
+  string: {
+    EditBoxPlaceholder: '' as IntlString,
+    Ok: '' as IntlString,
+    Cancel: '' as IntlString,
+    Save: '' as IntlString,
+    Publish: '' as IntlString,
+    SaveDraft: '' as IntlString,
+    MinutesAgo: '' as IntlString,
+    HoursAgo: '' as IntlString,
+    DaysAgo: '' as IntlString,
+    MonthsAgo: '' as IntlString,
+    YearsAgo: '' as IntlString,
+    Minutes: '' as IntlString,
+    Hours: '' as IntlString,
+    Days: '' as IntlString,
+    Weeks: '' as IntlString,
+    Months: '' as IntlString,
+    Years: '' as IntlString,
+    Before: '' as IntlString,
+    After: '' as IntlString,
+    MinutesShort: '' as IntlString,
+    HoursShort: '' as IntlString,
+    DaysShort: '' as IntlString,
+    ShowMore: '' as IntlString,
+    ShowLess: '' as IntlString,
+    Search: '' as IntlString,
+    SearchDots: '' as IntlString,
+    Suggested: '' as IntlString,
+    TimeTooltip: '' as IntlString,
+    SelectDate: '' as IntlString,
+    None: '' as IntlString,
+    NotSelected: '' as IntlString,
+    Today: '' as IntlString,
+    NoDate: '' as IntlString,
+    StartDate: '' as IntlString,
+    TargetDate: '' as IntlString,
+    Overdue: '' as IntlString,
+    DueDate: '' as IntlString,
+    AddDueDate: '' as IntlString,
+    SetDueDate: '' as IntlString,
+    EditDueDate: '' as IntlString,
+    SaveDueDate: '' as IntlString,
+    NeedsToBeCompletedByThisDate: '' as IntlString,
+    English: '' as IntlString,
+    Russian: '' as IntlString,
+    Spanish: '' as IntlString,
+    Portuguese: '' as IntlString,
+    MinutesBefore: '' as IntlString,
+    HoursBefore: '' as IntlString,
+    DaysBefore: '' as IntlString,
+    WeeksBefore: '' as IntlString,
+    MonthsBefore: '' as IntlString,
+    MinutesAfter: '' as IntlString,
+    HoursAfter: '' as IntlString,
+    DaysAfter: '' as IntlString,
+    WeeksAfter: '' as IntlString,
+    MonthsAfter: '' as IntlString,
+    NoActionsDefined: '' as IntlString,
+    Incoming: '' as IntlString,
+    HoursLabel: '' as IntlString,
+    Back: '' as IntlString,
+    Next: '' as IntlString,
+    DropdownDefaultLabel: '' as IntlString,
+    DD: '' as IntlString,
+    MM: '' as IntlString,
+    YYYY: '' as IntlString,
+    HH: '' as IntlString,
+    DueDatePopupTitle: '' as IntlString,
+    DueDatePopupOverdueTitle: '' as IntlString,
+    DueDatePopupDescription: '' as IntlString,
+    DueDatePopupOverdueDescription: '' as IntlString,
+
+    GettingWorkDone: '' as IntlString,
+    Smileys: '' as IntlString,
+    Nature: '' as IntlString,
+    Symbols: '' as IntlString,
+    TravelAndPlaces: '' as IntlString,
+    Food: '' as IntlString,
+    MoreCount: '' as IntlString,
+    Objects: '' as IntlString,
+    Spacious: '' as IntlString,
+    Compact: '' as IntlString,
+    ThemeLight: '' as IntlString,
+    ThemeDark: '' as IntlString,
+    ThemeSystem: '' as IntlString,
+    NoTimeZonesFound: '' as IntlString,
+    Selected: '' as IntlString
   },
   metadata: {
-    CollaboratorUrl: '' as Metadata<string>
-  },
-  string: {
-    TableOfContents: '' as IntlString,
-    Suggested: '' as IntlString,
-    NoItems: '' as IntlString,
-    Attach: '' as IntlString,
-    TextStyle: '' as IntlString,
-    Emoji: '' as IntlString,
-    GIF: '' as IntlString,
-    Mention: '' as IntlString,
-    Underlined: '' as IntlString,
-    EditorPlaceholder: '' as IntlString,
-    Edit: '' as IntlString,
-    Bold: '' as IntlString,
-    Italic: '' as IntlString,
-    Strikethrough: '' as IntlString,
-    Link: '' as IntlString,
-    Save: '' as IntlString,
-    OrderedList: '' as IntlString,
-    BulletedList: '' as IntlString,
-    Blockquote: '' as IntlString,
-    Code: '' as IntlString,
-    CodeBlock: '' as IntlString,
-    Send: '' as IntlString,
-    FullDescription: '' as IntlString,
-    NoFullDescription: '' as IntlString,
-    EnableDiffMode: '' as IntlString,
-
-    AlignCenter: '' as IntlString,
-    AlignLeft: '' as IntlString,
-    AlignRight: '' as IntlString,
-    ViewImage: '' as IntlString,
-    ViewOriginal: '' as IntlString,
-    MoreActions: '' as IntlString,
-
-    InsertTable: '' as IntlString,
-    AddColumnBefore: '' as IntlString,
-    AddColumnAfter: '' as IntlString,
-    DeleteColumn: '' as IntlString,
-    AddRowBefore: '' as IntlString,
-    AddRowAfter: '' as IntlString,
-    DeleteRow: '' as IntlString,
-    DeleteTable: '' as IntlString,
-    CategoryRow: '' as IntlString,
-    CategoryColumn: '' as IntlString,
-    Table: '' as IntlString,
-    TableOptions: '' as IntlString,
-    Width: '' as IntlString,
-    Height: '' as IntlString,
-    Unset: '' as IntlString,
-    Image: '' as IntlString,
-    SeparatorLine: '' as IntlString
+    DefaultApplication: '' as Metadata<AnyComponent>,
+    Routes: '' as Metadata<Map<string, AnyComponent>>,
+    Languages: '' as Metadata<string[]>,
+    PlatformTitle: '' as Metadata<string>,
+    SearchPopup: '' as Metadata<AnyComponent>
   }
 })
+
+export default uis
