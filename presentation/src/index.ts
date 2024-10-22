@@ -1,5 +1,6 @@
 //
-// Copyright © 2020 Anticrm Platform Contributors.
+// Copyright © 2020, 2021 Anticrm Platform Contributors.
+// Copyright © 2021 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -13,81 +14,47 @@
 // limitations under the License.
 //
 
-import { type Class, DOMAIN_MODEL, type Doc, type Ref } from '@hcengineering/core'
-import { type Builder, Model, Prop, TypeRef } from '@hcengineering/model'
-import core, { TDoc } from '@hcengineering/model-core'
-import { type Asset, type IntlString, type Resource } from '@hcengineering/platform'
-// Import types to prevent .svelte components to being exposed to type typescript.
-import {
-  type PresentationMiddlewareCreator,
-  type PresentationMiddlewareFactory
-} from '@hcengineering/presentation/src/pipeline'
-import {
-  type ComponentPointExtension,
-  type CreateExtensionKind,
-  type DocAttributeRule,
-  type DocRules,
-  type DocCreateExtension,
-  type DocCreateFunction,
-  type ObjectSearchContext,
-  type ObjectSearchCategory,
-  type ObjectSearchFactory
-} from '@hcengineering/presentation/src/types'
-import { type AnyComponent, type ComponentExtensionId } from '@hcengineering/ui/src/types'
-import presentation from './plugin'
-
-export { presentationId } from '@hcengineering/presentation/src/plugin'
+import { presentationId } from './plugin'
+export * from './attributes'
+export { default as AttributeBarEditor } from './components/AttributeBarEditor.svelte'
+export { default as AttributeEditor } from './components/AttributeEditor.svelte'
+export { default as ActionContext } from './components/ActionContext.svelte'
+export { default as InlineAttributeBarEditor } from './components/InlineAttributeBarEditor.svelte'
+export { default as InlineAttributeBar } from './components/InlineAttributeBar.svelte'
+export { default as AttributesBar } from './components/AttributesBar.svelte'
+export { default as Card } from './components/Card.svelte'
+export { default as HTMLViewer } from './components/HTMLViewer.svelte'
+export { default as MessageBox } from './components/MessageBox.svelte'
+export { default as MessageViewer } from './components/MessageViewer.svelte'
+export { default as ObjectPopup } from './components/ObjectPopup.svelte'
+export { default as DocPopup } from './components/DocPopup.svelte'
+export { default as PDFViewer } from './components/PDFViewer.svelte'
+export { default as SpaceCreateCard } from './components/SpaceCreateCard.svelte'
+export { default as SpaceMultiBoxList } from './components/SpaceMultiBoxList.svelte'
+export { default as SpaceSelect } from './components/SpaceSelect.svelte'
+export { default as SpaceSelector } from './components/SpaceSelector.svelte'
+export { default as SpacesMultiPopup } from './components/SpacesMultiPopup.svelte'
+export { default as ObjectSearchPopup } from './components/ObjectSearchPopup.svelte'
+export { default as IndexedDocumentPreview } from './components/IndexedDocumentPreview.svelte'
+export { default as IndexedDocumentCompare } from './components/IndexedDocumentCompare.svelte'
+export { default as NavLink } from './components/NavLink.svelte'
+export { default as IconDownload } from './components/icons/Download.svelte'
+export { default as IconForward } from './components/icons/Forward.svelte'
+export { default as Breadcrumbs } from './components/breadcrumbs/Breadcrumbs.svelte'
+export { default as BreadcrumbsElement } from './components/breadcrumbs/BreadcrumbsElement.svelte'
+export { default as ComponentExtensions } from './components/extensions/ComponentExtensions.svelte'
+export { default as DocCreateExtComponent } from './components/extensions/DocCreateExtComponent.svelte'
+export { default as SearchResult } from './components/SearchResult.svelte'
 export { default } from './plugin'
-export type { CreateExtensionKind, DocCreateExtension, DocCreateFunction, ObjectSearchCategory, ObjectSearchFactory }
-
-@Model(presentation.class.ObjectSearchCategory, core.class.Doc, DOMAIN_MODEL)
-export class TObjectSearchCategory extends TDoc implements ObjectSearchCategory {
-  label!: IntlString
-  icon!: Asset
-  title!: IntlString
-  context!: ObjectSearchContext[]
-
-  // Query for documents with pattern
-  query!: Resource<ObjectSearchFactory>
-  classToSearch!: Ref<Class<Doc>>
-}
-
-@Model(presentation.class.PresentationMiddlewareFactory, core.class.Doc, DOMAIN_MODEL)
-export class TPresentationMiddlewareFactory extends TDoc implements PresentationMiddlewareFactory {
-  createPresentationMiddleware!: Resource<PresentationMiddlewareCreator>
-}
-
-@Model(presentation.class.ComponentPointExtension, core.class.Doc, DOMAIN_MODEL)
-export class TComponentPointExtension extends TDoc implements ComponentPointExtension {
-  extension!: ComponentExtensionId
-  component!: AnyComponent
-  props!: Record<string, any>
-  order!: number
-}
-
-@Model(presentation.class.DocCreateExtension, core.class.Doc, DOMAIN_MODEL)
-export class TDocCreateExtension extends TDoc implements DocCreateExtension {
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-    ofClass!: Ref<Class<Doc>>
-
-  components!: Record<CreateExtensionKind, AnyComponent>
-  apply!: Resource<DocCreateFunction>
-}
-
-@Model(presentation.class.DocRules, core.class.Doc, DOMAIN_MODEL)
-export class TDocRules extends TDoc implements DocRules {
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-    ofClass!: Ref<Class<Doc>>
-
-  fieldRules!: DocAttributeRule[]
-}
-
-export function createModel (builder: Builder): void {
-  builder.createModel(
-    TObjectSearchCategory,
-    TPresentationMiddlewareFactory,
-    TComponentPointExtension,
-    TDocCreateExtension,
-    TDocRules
-  )
-}
+export * from './types'
+export * from './utils'
+export * from './drafts'
+export { presentationId }
+export * from './collaborator'
+export * from './configuration'
+export * from './context'
+export * from './pipeline'
+export * from './components/extensions/manager'
+export * from './rules'
+export * from './search'
+export * from './image'

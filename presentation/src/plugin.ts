@@ -14,8 +14,73 @@
 // limitations under the License.
 //
 
-import { mergeIds } from '@hcengineering/platform'
-// Import plugin directly to prevent .svelte components to being exposed to type typescript.
-import presentation, { presentationId } from '@hcengineering/presentation/src/plugin'
+import { type Class, type Ref } from '@hcengineering/core'
+import type { Asset, IntlString, Metadata, Plugin } from '@hcengineering/platform'
+import { plugin } from '@hcengineering/platform'
+import { type PresentationMiddlewareFactory } from './pipeline'
+import {
+  type ComponentPointExtension,
+  type DocRules,
+  type DocCreateExtension,
+  type ObjectSearchCategory
+} from './types'
 
-export default mergeIds(presentationId, presentation, {})
+/**
+ * @public
+ */
+export const presentationId = 'presentation' as Plugin
+
+export default plugin(presentationId, {
+  class: {
+    ObjectSearchCategory: '' as Ref<Class<ObjectSearchCategory>>,
+    PresentationMiddlewareFactory: '' as Ref<Class<PresentationMiddlewareFactory>>,
+    ComponentPointExtension: '' as Ref<Class<ComponentPointExtension>>,
+    DocCreateExtension: '' as Ref<Class<DocCreateExtension>>,
+    DocRules: '' as Ref<Class<DocRules>>
+  },
+  string: {
+    Create: '' as IntlString,
+    Cancel: '' as IntlString,
+    Ok: '' as IntlString,
+    Save: '' as IntlString,
+    Saved: '' as IntlString,
+    Download: '' as IntlString,
+    Delete: '' as IntlString,
+    Close: '' as IntlString,
+    NotSelected: '' as IntlString,
+    Deselect: '' as IntlString,
+    Archived: '' as IntlString,
+    AddSocialLinks: '' as IntlString,
+    EditSocialLinks: '' as IntlString,
+    Change: '' as IntlString,
+    Remove: '' as IntlString,
+    Search: '' as IntlString,
+    Spaces: '' as IntlString,
+    NumberMembers: '' as IntlString,
+    NumberSpaces: '' as IntlString,
+    InThis: '' as IntlString,
+    NoMatchesInThis: '' as IntlString,
+    NoMatchesFound: '' as IntlString,
+    NotInThis: '' as IntlString,
+    Match: '' as IntlString,
+    Add: '' as IntlString,
+    Edit: '' as IntlString,
+    DocumentPreview: '' as IntlString,
+    MakePrivate: '' as IntlString,
+    MakePrivateDescription: '' as IntlString,
+    OpenInANewTab: '' as IntlString,
+    Created: '' as IntlString,
+    NoResults: '' as IntlString,
+    Next: '' as IntlString,
+    FailedToPreview: '' as IntlString
+  },
+  metadata: {
+    RequiredVersion: '' as Metadata<string>,
+    Draft: '' as Metadata<Record<string, any>>,
+    UploadURL: '' as Metadata<string>,
+    CollaboratorUrl: '' as Metadata<string>,
+    CollaboratorApiUrl: '' as Metadata<string>,
+    Token: '' as Metadata<string>,
+    FrontUrl: '' as Asset
+  }
+})
