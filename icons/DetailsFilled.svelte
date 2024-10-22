@@ -1,5 +1,6 @@
 <!--
-// Copyright © 2023 Hardcore Engineering Inc.
+// Copyright © 2020, 2021 Anticrm Platform Contributors.
+// Copyright © 2021 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -13,19 +14,14 @@
 // limitations under the License.
 -->
 <script lang="ts">
-  import { IconSize } from '../../types'
-  export let size: IconSize
+  export let size: 'x-small' | 'small' | 'medium' | 'large'
   const fill: string = 'currentColor'
 </script>
 
-<svg class="svg-{size}" {fill} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+<svg class="svg-{size}" {fill} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
   <path
-    d="M2 4.5C2 4.22386 2.22386 4 2.5 4H13.5C13.7761 4 14 4.22386 14 4.5C14 4.77614 13.7761 5 13.5 5H2.5C2.22386 5 2 4.77614 2 4.5Z"
-  />
-  <path
-    d="M2 8C2 7.72386 2.22386 7.5 2.5 7.5H9.5C9.77614 7.5 10 7.72386 10 8C10 8.27614 9.77614 8.5 9.5 8.5H2.5C2.22386 8.5 2 8.27614 2 8Z"
-  />
-  <path
-    d="M2 11.5C2 11.2239 2.22386 11 2.5 11H11.5C11.7761 11 12 11.2239 12 11.5C12 11.7761 11.7761 12 11.5 12H2.5C2.22386 12 2 11.7761 2 11.5Z"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M2 8.00049C2 5.79135 3.79086 4.00049 6 4.00049H26C28.2091 4.00049 30 5.79135 30 8.00049V24.0005C30 26.2096 28.2091 28.0005 26 28.0005H6C3.79086 28.0005 2 26.2096 2 24.0005V8.00049ZM20 6.00049H6C4.89543 6.00049 4 6.89592 4 8.00049V24.0005C4 25.1051 4.89543 26.0005 6 26.0005H20V6.00049Z"
   />
 </svg>
