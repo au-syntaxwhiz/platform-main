@@ -13,713 +13,205 @@
 // limitations under the License.
 //
 
-import activity, { type ActivityMessage } from '@hcengineering/activity'
-import {
-  type Channel,
-  chunterId,
-  type ChunterMessage,
-  type ChunterMessageExtension,
-  type DirectMessage,
-  type Message,
-  type DirectMessageInput,
-  type ChatMessage,
-  type ChatMessageViewlet,
-  type ChunterSpace,
-  type ObjectChatPanel,
-  type ThreadMessage
-} from '@hcengineering/chunter'
-import contact, { type Person } from '@hcengineering/contact'
-import {
-  type Account,
-  type Class,
-  type Doc,
-  type Domain,
-  DOMAIN_MODEL,
-  type Ref,
-  type Space,
-  type Timestamp,
-  IndexKind
-} from '@hcengineering/core'
-import {
-  ArrOf,
-  type Builder,
-  Collection as PropCollection,
-  Collection,
-  Index,
-  Mixin,
-  Model,
-  Prop,
-  ReadOnly,
-  TypeMarkup,
-  TypeRef,
-  TypeString,
-  TypeTimestamp,
-  UX
-} from '@hcengineering/model'
-import attachment from '@hcengineering/model-attachment'
-import core, { TAttachedDoc, TClass, TDoc, TSpace } from '@hcengineering/model-core'
-import notification, { notificationActionTemplates } from '@hcengineering/model-notification'
-import view, { createAction, template, actionTemplates as viewTemplates } from '@hcengineering/model-view'
-import workbench from '@hcengineering/model-workbench'
-import { type AnyComponent } from '@hcengineering/ui/src/types'
-import type { IntlString } from '@hcengineering/platform'
-import { TActivityMessage } from '@hcengineering/model-activity'
+import { ActivityMessage, ActivityMessageViewlet } from '@hcengineering/activity'
+import type { Person } from '@hcengineering/contact'
+import type { Account, AttachedDoc, Class, Doc, Markup, Mixin, Ref, Space, Timestamp } from '@hcengineering/core'
+import { NotificationType } from '@hcengineering/notification'
+import type { Asset, Plugin } from '@hcengineering/platform'
+import { IntlString, plugin } from '@hcengineering/platform'
+import { AnyComponent } from '@hcengineering/ui'
+import { Action } from '@hcengineering/view'
 
-import chunter from './plugin'
-
-export { chunterId } from '@hcengineering/chunter'
-export { chunterOperation } from './migration'
-
-export const DOMAIN_CHUNTER = 'chunter' as Domain
-
-@Model(chunter.class.ChunterSpace, core.class.Space)
-export class TChunterSpace extends TSpace implements ChunterSpace {
-  @Prop(TypeTimestamp(), chunter.string.LastMessage)
-    lastMessage?: Timestamp
-
-  @Prop(ArrOf(TypeRef(chunter.class.ChunterMessage)), chunter.string.PinnedMessages)
-    pinned?: Ref<ChunterMessage>[]
+/**
+ * @public
+ */
+export interface ChunterSpace extends Space {
+  lastMessage?: Timestamp
+  pinned?: Ref<ChunterMessage>[]
 }
 
-@Model(chunter.class.Channel, chunter.class.ChunterSpace)
-@UX(chunter.string.Channel, chunter.icon.Hashtag, undefined, undefined, undefined, chunter.string.Channels)
-export class TChannel extends TChunterSpace implements Channel {
-  @Prop(TypeString(), chunter.string.Topic)
-  @Index(IndexKind.FullText)
-    topic?: string
+/**
+ * @public
+ */
+export interface Channel extends ChunterSpace {
+  topic?: string
 }
 
-@Model(chunter.class.DirectMessage, chunter.class.ChunterSpace)
-@UX(chunter.string.DirectMessage, contact.icon.Person, undefined, undefined, undefined, chunter.string.DirectMessages)
-export class TDirectMessage extends TChunterSpace implements DirectMessage {}
+/**
+ * @public
+ */
+export interface DirectMessage extends ChunterSpace {}
 
-@Model(chunter.class.ChunterMessage, core.class.AttachedDoc, DOMAIN_CHUNTER)
-export class TChunterMessage extends TAttachedDoc implements ChunterMessage {
-  @Prop(TypeMarkup(), chunter.string.Content)
-  @Index(IndexKind.FullText)
-    content!: string
-
-  @Prop(Collection(attachment.class.Attachment), attachment.string.Attachments, { shortLabel: attachment.string.Files })
-    attachments?: number
-
-  @Prop(TypeRef(core.class.Account), chunter.string.CreateBy)
-  @ReadOnly()
-    createBy!: Ref<Account>
-
-  @Prop(TypeTimestamp(), chunter.string.Edit)
-    editedOn?: Timestamp
-
-  @Prop(Collection(activity.class.Reaction), activity.string.Reactions)
-    reactions?: number
+/**
+ * @public
+ * @deprecated use ChatMessage instead
+ */
+export interface ChunterMessage extends AttachedDoc {
+  content: Markup
+  attachments?: number
+  createBy: Ref<Account>
+  editedOn?: Timestamp
+  reactions?: number
 }
 
-@Mixin(chunter.mixin.ChunterMessageExtension, chunter.class.ChunterMessage)
-export class TChunterMessageExtension extends TChunterMessage implements ChunterMessageExtension {}
+/**
+ * @public
+ */
+export interface ChunterMessageExtension extends ChunterMessage {}
 
-@Model(chunter.class.Message, chunter.class.ChunterMessage)
-@UX(chunter.string.Message, undefined, 'MSG')
-export class TMessage extends TChunterMessage implements Message {
-  declare attachedTo: Ref<Space>
-
-  declare attachedToClass: Ref<Class<Space>>
-
-  @Prop(ArrOf(TypeRef(contact.class.Person)), chunter.string.Replies)
-    replies?: Ref<Person>[]
-
+/**
+ * @public
+ * @deprecated use ChatMessage instead
+ */
+export interface Message extends ChunterMessage {
+  attachedTo: Ref<Space>
+  attachedToClass: Ref<Class<Space>>
+  replies?: Ref<Person>[]
   repliesCount?: number
-
-  @Prop(TypeTimestamp(), activity.string.LastReply)
-    lastReply?: Timestamp
+  lastReply?: Timestamp
 }
 
-@Mixin(chunter.mixin.DirectMessageInput, core.class.Class)
-export class TDirectMessageInput extends TClass implements DirectMessageInput {
-  component!: AnyComponent
+/**
+ * @public
+ */
+export interface DirectMessageInput extends Class<Doc> {
+  component: AnyComponent
 }
 
-@Model(chunter.class.ChatMessage, activity.class.ActivityMessage)
-@UX(chunter.string.Message, chunter.icon.Thread, undefined, undefined, undefined, chunter.string.Threads)
-export class TChatMessage extends TActivityMessage implements ChatMessage {
-  @Prop(TypeMarkup(), chunter.string.Message)
-  @Index(IndexKind.FullText)
-    message!: string
-
-  @Prop(TypeTimestamp(), chunter.string.Edit)
-    editedOn?: Timestamp
-
-  @Prop(PropCollection(attachment.class.Attachment), attachment.string.Attachments, {
-    shortLabel: attachment.string.Files
-  })
-    attachments?: number
+/**
+ * @public
+ */
+export interface ObjectChatPanel extends Class<Doc> {
+  ignoreKeys: string[]
 }
 
-@Model(chunter.class.ThreadMessage, chunter.class.ChatMessage)
-@UX(chunter.string.ThreadMessage, chunter.icon.Thread, undefined, undefined, undefined, chunter.string.Threads)
-export class TThreadMessage extends TChatMessage implements ThreadMessage {
-  @Prop(TypeRef(activity.class.ActivityMessage), core.string.AttachedTo)
-  @Index(IndexKind.Indexed)
-  declare attachedTo: Ref<ActivityMessage>
-
-  @Prop(TypeRef(activity.class.ActivityMessage), core.string.AttachedToClass)
-  @Index(IndexKind.Indexed)
-  declare attachedToClass: Ref<Class<ActivityMessage>>
-
-  @Prop(TypeRef(core.class.Doc), core.string.Object)
-  @Index(IndexKind.Indexed)
-    objectId!: Ref<Doc>
-
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-  @Index(IndexKind.Indexed)
-    objectClass!: Ref<Class<Doc>>
+/**
+ * @public
+ */
+export interface ChatMessage extends ActivityMessage {
+  message: Markup
+  attachments?: number
+  editedOn?: Timestamp
 }
 
-@Model(chunter.class.ChatMessageViewlet, core.class.Doc, DOMAIN_MODEL)
-export class TChatMessageViewlet extends TDoc implements ChatMessageViewlet {
-  @Prop(TypeRef(core.class.Doc), core.string.Class)
-  @Index(IndexKind.Indexed)
-    objectClass!: Ref<Class<Doc>>
+/**
+ * @public
+ */
+export interface ThreadMessage extends ChatMessage {
+  attachedTo: Ref<ActivityMessage>
+  attachedToClass: Ref<Class<ActivityMessage>>
+  objectId: Ref<Doc>
+  objectClass: Ref<Class<Doc>>
+}
 
-  @Prop(TypeRef(core.class.Doc), core.string.Class)
-  @Index(IndexKind.Indexed)
-    messageClass!: Ref<Class<Doc>>
-
+/**
+ * @public
+ */
+export interface ChatMessageViewlet extends ActivityMessageViewlet {
+  messageClass: Ref<Class<Doc>>
   label?: IntlString
-  onlyWithParent?: boolean
 }
 
-@Mixin(chunter.mixin.ObjectChatPanel, core.class.Class)
-export class TObjectChatPanel extends TClass implements ObjectChatPanel {
-  ignoreKeys!: string[]
-}
+/**
+ * @public
+ */
+export const chunterId = 'chunter' as Plugin
 
-const actionTemplates = template({
-  removeChannel: {
-    action: chunter.actionImpl.RemoveChannel,
-    label: view.string.Archive,
-    icon: view.icon.Delete,
-    input: 'focus',
-    keyBinding: ['Backspace'],
-    category: chunter.category.Chunter,
-    target: notification.class.DocNotifyContext,
-    context: { mode: ['context', 'browser'], group: 'remove' }
+export * from './utils'
+
+export default plugin(chunterId, {
+  icon: {
+    Chunter: '' as Asset,
+    Hashtag: '' as Asset,
+    Thread: '' as Asset,
+    Lock: '' as Asset,
+    ChannelBrowser: '' as Asset,
+    Copy: '' as Asset
+  },
+  component: {
+    DmHeader: '' as AnyComponent,
+    ThreadView: '' as AnyComponent,
+    Thread: '' as AnyComponent,
+    Reactions: '' as AnyComponent,
+    ChatMessageInput: '' as AnyComponent,
+    ChatMessagesPresenter: '' as AnyComponent,
+    ChatMessagePresenter: '' as AnyComponent,
+    ThreadMessagePresenter: '' as AnyComponent,
+    ChatAside: '' as AnyComponent,
+    ChatMessagePreview: '' as AnyComponent,
+    ThreadMessagePreview: '' as AnyComponent
+  },
+  class: {
+    Message: '' as Ref<Class<Message>>,
+    ChunterMessage: '' as Ref<Class<ChunterMessage>>,
+    ThreadMessage: '' as Ref<Class<ThreadMessage>>,
+    ChunterSpace: '' as Ref<Class<ChunterSpace>>,
+    Channel: '' as Ref<Class<Channel>>,
+    DirectMessage: '' as Ref<Class<DirectMessage>>,
+    ChatMessage: '' as Ref<Class<ChatMessage>>,
+    ChatMessageViewlet: '' as Ref<Class<ChatMessageViewlet>>
+  },
+  mixin: {
+    DirectMessageInput: '' as Ref<Mixin<DirectMessageInput>>,
+    ChunterMessageExtension: '' as Ref<Mixin<ChunterMessageExtension>>,
+    ObjectChatPanel: '' as Ref<Mixin<ObjectChatPanel>>
+  },
+  string: {
+    Reactions: '' as IntlString,
+    EditUpdate: '' as IntlString,
+    EditCancel: '' as IntlString,
+    Comments: '' as IntlString,
+    Settings: '' as IntlString,
+    ArchiveChannel: '' as IntlString,
+    UnarchiveChannel: '' as IntlString,
+    ArchiveConfirm: '' as IntlString,
+    Message: '' as IntlString,
+    MessageOn: '' as IntlString,
+    UnarchiveConfirm: '' as IntlString,
+    ConvertToPrivate: '' as IntlString,
+    DirectNotificationTitle: '' as IntlString,
+    DirectNotificationBody: '' as IntlString,
+    MessageNotificationBody: '' as IntlString,
+    AddCommentPlaceholder: '' as IntlString,
+    LeftComment: '' as IntlString,
+    Docs: '' as IntlString,
+    Chat: '' as IntlString,
+    Thread: '' as IntlString,
+    ThreadMessage: '' as IntlString,
+    ReplyToThread: '' as IntlString,
+    Channels: '' as IntlString,
+    Direct: '' as IntlString,
+    RepliedTo: '' as IntlString,
+    AllChannels: '' as IntlString,
+    AllContacts: '' as IntlString,
+    NewChannel: '' as IntlString,
+    DescriptionOptional: '' as IntlString,
+    Visibility: '' as IntlString,
+    Public: '' as IntlString,
+    Private: '' as IntlString,
+    NewDirectChat: '' as IntlString,
+    AddMembers: '' as IntlString,
+    CloseConversation: '' as IntlString,
+    Starred: '' as IntlString,
+    DeleteStarred: '' as IntlString,
+    StarChannel: '' as IntlString,
+    StarConversation: '' as IntlString,
+    UnstarChannel: '' as IntlString,
+    UnstarConversation: '' as IntlString
+  },
+  ids: {
+    DMNotification: '' as Ref<NotificationType>,
+    ThreadNotification: '' as Ref<NotificationType>,
+    ChannelNotification: '' as Ref<NotificationType>,
+    ThreadMessageViewlet: '' as Ref<ChatMessageViewlet>
+  },
+  app: {
+    Chunter: '' as Ref<Doc>
+  },
+  action: {
+    DeleteChatMessage: '' as Ref<Action>,
+    LeaveChannel: '' as Ref<Action>,
+    RemoveChannel: '' as Ref<Action>,
+    CloseConversation: '' as Ref<Action>
   }
 })
-
-export function createModel (builder: Builder, options = { addApplication: true }): void {
-  builder.createModel(
-    TChunterSpace,
-    TChannel,
-    TMessage,
-    TChunterMessage,
-    TChunterMessageExtension,
-    TDirectMessage,
-    TDirectMessageInput,
-    TChatMessage,
-    TThreadMessage,
-    TChatMessageViewlet,
-    TObjectChatPanel
-  )
-  const spaceClasses = [chunter.class.Channel, chunter.class.DirectMessage]
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, view.mixin.ObjectIcon, {
-    component: chunter.component.DirectIcon
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, view.mixin.ObjectIcon, {
-    component: chunter.component.ChannelIcon
-  })
-
-  spaceClasses.forEach((spaceClass) => {
-    builder.mixin(spaceClass, core.class.Class, activity.mixin.ActivityDoc, {})
-
-    builder.mixin(spaceClass, core.class.Class, view.mixin.LinkProvider, {
-      encode: chunter.function.GetChunterSpaceLinkFragment
-    })
-
-    builder.mixin(spaceClass, core.class.Class, workbench.mixin.SpaceView, {
-      view: {
-        class: chunter.class.Message
-      }
-    })
-
-    builder.mixin(spaceClass, core.class.Class, view.mixin.ObjectEditor, {
-      editor: chunter.component.EditChannel
-    })
-
-    builder.mixin(spaceClass, core.class.Class, view.mixin.ObjectPanel, {
-      component: chunter.component.ChannelPanel
-    })
-  })
-
-  builder.mixin(chunter.class.Message, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['createdBy', 'replies']
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, view.mixin.ObjectTitle, {
-    titleProvider: chunter.function.DirectTitleProvider
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, view.mixin.ObjectTitle, {
-    titleProvider: chunter.function.ChannelTitleProvider
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['members']
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['members']
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: chunter.component.DmPresenter
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, notification.mixin.NotificationPreview, {
-    presenter: chunter.component.ChannelPreview
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, chunter.mixin.DirectMessageInput, {
-    component: chunter.component.DirectMessageInput
-  })
-
-  builder.mixin(chunter.class.Message, core.class.Class, notification.mixin.NotificationObjectPresenter, {
-    presenter: chunter.component.ThreadParentPresenter
-  })
-
-  builder.mixin(chunter.class.Message, core.class.Class, view.mixin.ObjectPanel, {
-    component: chunter.component.ThreadViewPanel
-  })
-
-  builder.mixin(chunter.class.Message, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: chunter.component.MessagePresenter
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: chunter.component.ChannelPresenter
-  })
-
-  builder.mixin(chunter.class.ChatMessage, core.class.Class, notification.mixin.NotificationContextPresenter, {
-    labelPresenter: chunter.component.ChatMessageNotificationLabel
-  })
-
-  builder.createDoc(notification.class.ActivityNotificationViewlet, core.space.Model, {
-    messageMatch: {
-      _class: chunter.class.ThreadMessage
-    },
-    presenter: chunter.component.ThreadNotificationPresenter
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, view.mixin.SpaceHeader, {
-    header: chunter.component.DmHeader
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, view.mixin.SpaceHeader, {
-    header: chunter.component.ChannelHeader
-  })
-
-  builder.createDoc(
-    view.class.ActionCategory,
-    core.space.Model,
-    { label: chunter.string.Chat, visible: true },
-    chunter.category.Chunter
-  )
-
-  createAction(
-    builder,
-    {
-      action: chunter.actionImpl.ArchiveChannel,
-      label: chunter.string.ArchiveChannel,
-      icon: view.icon.Archive,
-      input: 'focus',
-      category: chunter.category.Chunter,
-      target: chunter.class.Channel,
-      query: {
-        archived: false
-      },
-      context: {
-        mode: 'context',
-        group: 'tools'
-      }
-    },
-    chunter.action.ArchiveChannel
-  )
-
-  createAction(
-    builder,
-    {
-      action: chunter.actionImpl.UnarchiveChannel,
-      label: chunter.string.UnarchiveChannel,
-      icon: view.icon.Archive,
-      input: 'focus',
-      category: chunter.category.Chunter,
-      target: chunter.class.Channel,
-      query: {
-        archived: true
-      },
-      context: {
-        mode: 'context',
-        group: 'tools'
-      }
-    },
-    chunter.action.UnarchiveChannel
-  )
-
-  createAction(
-    builder,
-    {
-      action: chunter.actionImpl.ConvertDmToPrivateChannel,
-      label: chunter.string.ConvertToPrivate,
-      icon: chunter.icon.Lock,
-      input: 'focus',
-      category: chunter.category.Chunter,
-      target: chunter.class.DirectMessage,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    chunter.action.ConvertToPrivate
-  )
-
-  if (options.addApplication) {
-    builder.createDoc(
-      workbench.class.Application,
-      core.space.Model,
-      {
-        label: chunter.string.ApplicationLabelChunter,
-        icon: chunter.icon.Chunter,
-        alias: chunterId,
-        hidden: false,
-        component: chunter.component.Chat,
-        aside: chunter.component.ChatAside
-      },
-      chunter.app.Chunter
-    )
-  }
-
-  builder.mixin(activity.class.ActivityMessage, core.class.Class, view.mixin.LinkProvider, {
-    encode: chunter.function.GetMessageLink
-  })
-
-  builder.mixin(chunter.class.ThreadMessage, core.class.Class, view.mixin.LinkProvider, {
-    encode: chunter.function.GetThreadLink
-  })
-
-  createAction(
-    builder,
-    {
-      action: view.actionImpl.CopyTextToClipboard,
-      actionProps: {
-        textProvider: chunter.function.GetLink
-      },
-      label: chunter.string.CopyLink,
-      icon: chunter.icon.Copy,
-      keyBinding: [],
-      input: 'none',
-      category: chunter.category.Chunter,
-      target: activity.class.ActivityMessage,
-      visibilityTester: chunter.function.CanCopyMessageLink,
-      context: {
-        mode: ['context', 'browser'],
-        application: chunter.app.Chunter,
-        group: 'copy'
-      }
-    },
-    chunter.action.CopyChatMessageLink
-  )
-
-  builder.mixin(chunter.class.ChunterMessage, core.class.Class, view.mixin.ClassFilters, {
-    filters: ['space', '_class']
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, view.mixin.ClassFilters, {
-    filters: []
-  })
-
-  builder.createDoc(
-    notification.class.NotificationGroup,
-    core.space.Model,
-    {
-      label: chunter.string.ApplicationLabelChunter,
-      icon: chunter.icon.Chunter
-    },
-    chunter.ids.ChunterNotificationGroup
-  )
-
-  builder.createDoc(
-    notification.class.NotificationType,
-    core.space.Model,
-    {
-      label: chunter.string.DM,
-      generated: false,
-      hidden: false,
-      txClasses: [core.class.TxCreateDoc],
-      objectClass: chunter.class.ChatMessage,
-      providers: {
-        [notification.providers.EmailNotification]: false,
-        [notification.providers.BrowserNotification]: true,
-        [notification.providers.PlatformNotification]: true
-      },
-      group: chunter.ids.ChunterNotificationGroup,
-      templates: {
-        textTemplate: '{sender} has send you a message: {doc} {data}',
-        htmlTemplate: '<p><b>{sender}</b> has send you a message {doc}</p> {data}',
-        subjectTemplate: 'You have new direct message in {doc}'
-      }
-    },
-    chunter.ids.DMNotification
-  )
-
-  builder.createDoc(
-    notification.class.NotificationType,
-    core.space.Model,
-    {
-      label: chunter.string.Message,
-      generated: false,
-      hidden: false,
-      txClasses: [core.class.TxCreateDoc],
-      objectClass: chunter.class.ChatMessage,
-      providers: {
-        [notification.providers.PlatformNotification]: true,
-        [notification.providers.BrowserNotification]: true
-      },
-      group: chunter.ids.ChunterNotificationGroup
-    },
-    chunter.ids.ChannelNotification
-  )
-
-  builder.createDoc(
-    notification.class.NotificationType,
-    core.space.Model,
-    {
-      label: chunter.string.ThreadMessage,
-      generated: false,
-      hidden: false,
-      txClasses: [core.class.TxCreateDoc],
-      objectClass: chunter.class.ThreadMessage,
-      providers: {
-        [notification.providers.PlatformNotification]: true,
-        [notification.providers.BrowserNotification]: true
-      },
-      group: chunter.ids.ChunterNotificationGroup
-    },
-    chunter.ids.ThreadNotification
-  )
-
-  createAction(builder, {
-    ...viewTemplates.open,
-    target: chunter.class.Channel,
-    context: {
-      mode: ['browser', 'context'],
-      group: 'create'
-    },
-    action: workbench.actionImpl.Navigate,
-    actionProps: {
-      mode: 'space'
-    }
-  })
-
-  builder.createDoc(activity.class.ActivityMessagesFilter, core.space.Model, {
-    label: chunter.string.Comments,
-    position: 60,
-    filter: chunter.filter.ChatMessagesFilter
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, view.mixin.ObjectIdentifier, {
-    provider: chunter.function.DmIdentifierProvider
-  })
-
-  builder.mixin(chunter.class.ChatMessage, core.class.Class, view.mixin.CollectionPresenter, {
-    presenter: chunter.component.ChatMessagesPresenter
-  })
-
-  builder.mixin(chunter.class.ChatMessage, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: chunter.component.ChatMessagePresenter
-  })
-
-  builder.mixin(chunter.class.ThreadMessage, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: chunter.component.ThreadMessagePresenter
-  })
-
-  builder.createDoc(
-    chunter.class.ChatMessageViewlet,
-    core.space.Model,
-    {
-      messageClass: chunter.class.ThreadMessage,
-      objectClass: chunter.class.ChatMessage,
-      label: chunter.string.RepliedToThread
-    },
-    chunter.ids.ThreadMessageViewlet
-  )
-
-  createAction(
-    builder,
-    {
-      action: chunter.actionImpl.DeleteChatMessage,
-      label: view.string.Delete,
-      icon: view.icon.Delete,
-      input: 'focus',
-      keyBinding: ['Backspace'],
-      category: chunter.category.Chunter,
-      target: chunter.class.ChatMessage,
-      visibilityTester: chunter.function.CanDeleteMessage,
-      context: { mode: ['context', 'browser'], group: 'remove' }
-    },
-    chunter.action.DeleteChatMessage
-  )
-
-  createAction(
-    builder,
-    {
-      ...actionTemplates.removeChannel,
-      query: {
-        attachedToClass: { $nin: [chunter.class.DirectMessage, chunter.class.Channel] }
-      }
-    },
-    chunter.action.RemoveChannel
-  )
-
-  createAction(
-    builder,
-    {
-      ...actionTemplates.removeChannel,
-      label: chunter.string.CloseConversation,
-      query: {
-        attachedToClass: chunter.class.DirectMessage
-      }
-    },
-    chunter.action.CloseConversation
-  )
-
-  createAction(
-    builder,
-    {
-      ...actionTemplates.removeChannel,
-      action: chunter.actionImpl.LeaveChannel,
-      label: chunter.string.LeaveChannel,
-      query: {
-        attachedToClass: chunter.class.Channel
-      }
-    },
-    chunter.action.LeaveChannel
-  )
-
-  createAction(builder, {
-    ...notificationActionTemplates.pinContext,
-    label: chunter.string.StarChannel,
-    query: {
-      attachedToClass: chunter.class.Channel
-    },
-    override: [notification.action.PinDocNotifyContext]
-  })
-
-  createAction(builder, {
-    ...notificationActionTemplates.unpinContext,
-    label: chunter.string.UnstarChannel,
-    query: {
-      attachedToClass: chunter.class.Channel
-    }
-  })
-
-  createAction(builder, {
-    ...notificationActionTemplates.pinContext,
-    label: chunter.string.StarConversation,
-    query: {
-      attachedToClass: chunter.class.DirectMessage
-    }
-  })
-
-  createAction(builder, {
-    ...notificationActionTemplates.unpinContext,
-    label: chunter.string.UnstarConversation,
-    query: {
-      attachedToClass: chunter.class.DirectMessage
-    }
-  })
-
-  createAction(builder, {
-    ...notificationActionTemplates.pinContext,
-    query: {
-      attachedToClass: { $nin: [chunter.class.DirectMessage, chunter.class.Channel] }
-    }
-  })
-
-  createAction(builder, {
-    ...notificationActionTemplates.unpinContext,
-    query: {
-      attachedToClass: { $nin: [chunter.class.DirectMessage, chunter.class.Channel] }
-    }
-  })
-
-  builder.createDoc(activity.class.ActivityExtension, core.space.Model, {
-    ofClass: chunter.class.Channel,
-    components: { input: chunter.component.ChatMessageInput }
-  })
-
-  builder.createDoc(activity.class.ActivityExtension, core.space.Model, {
-    ofClass: chunter.class.DirectMessage,
-    components: { input: chunter.component.ChatMessageInput }
-  })
-
-  builder.createDoc(activity.class.ActivityExtension, core.space.Model, {
-    ofClass: activity.class.DocUpdateMessage,
-    components: { input: chunter.component.ChatMessageInput }
-  })
-
-  builder.createDoc(activity.class.ActivityExtension, core.space.Model, {
-    ofClass: chunter.class.ChatMessage,
-    components: { input: chunter.component.ChatMessageInput }
-  })
-
-  builder.createDoc(activity.class.ActivityExtension, core.space.Model, {
-    ofClass: activity.class.ActivityReference,
-    components: { input: chunter.component.ChatMessageInput }
-  })
-
-  builder.mixin(chunter.class.Channel, core.class.Class, chunter.mixin.ObjectChatPanel, {
-    ignoreKeys: ['archived', 'collaborators', 'lastMessage', 'pinned', 'topic', 'description']
-  })
-
-  builder.mixin(chunter.class.DirectMessage, core.class.Class, chunter.mixin.ObjectChatPanel, {
-    ignoreKeys: ['archived', 'collaborators', 'lastMessage', 'pinned', 'topic', 'description']
-  })
-
-  builder.mixin(chunter.class.ChatMessage, core.class.Class, activity.mixin.ActivityMessagePreview, {
-    presenter: chunter.component.ChatMessagePreview
-  })
-
-  builder.mixin(chunter.class.ThreadMessage, core.class.Class, activity.mixin.ActivityMessagePreview, {
-    presenter: chunter.component.ThreadMessagePreview
-  })
-
-  builder.createDoc(core.class.DomainIndexConfiguration, core.space.Model, {
-    domain: DOMAIN_CHUNTER,
-    disabled: [{ _class: 1 }, { space: 1 }, { modifiedBy: 1 }, { createdBy: 1 }, { createdOn: -1 }]
-  })
-
-  builder.createDoc(activity.class.ReplyProvider, core.space.Model, {
-    function: chunter.function.ReplyToThread
-  })
-
-  createAction(
-    builder,
-    {
-      action: chunter.actionImpl.ReplyToThread,
-      label: chunter.string.ReplyToThread,
-      icon: chunter.icon.Thread,
-      input: 'focus',
-      category: chunter.category.Chunter,
-      target: activity.class.ActivityMessage,
-      visibilityTester: chunter.function.CanReplyToThread,
-      inline: true,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    chunter.action.ReplyToThreadAction
-  )
-}
-
-export default chunter
