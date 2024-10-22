@@ -13,514 +13,381 @@
 // limitations under the License.
 //
 
+import { Person } from '@hcengineering/contact'
 import {
-  type ActivityAttributeUpdatesPresenter,
-  type ActivityDoc,
-  type ActivityExtension,
-  type ActivityExtensionKind,
-  type ActivityInfoMessage,
-  type ActivityMessage,
-  type ActivityMessageControl,
-  type ActivityMessagePreview,
-  type ActivityMessagesFilter,
-  type ActivityReference,
-  type DocAttributeUpdates,
-  type DocUpdateAction,
-  type DocUpdateMessage,
-  type DocUpdateMessageViewlet,
-  type DocUpdateMessageViewletAttributesConfig,
-  type IgnoreActivity,
-  type Reaction,
-  type SavedMessage,
-  type TxViewlet,
-  type ReplyProvider
-} from '@hcengineering/activity'
-import contact, { type Person } from '@hcengineering/contact'
-import core, {
-  DOMAIN_MODEL,
-  IndexKind,
-  type Account,
-  type Class,
-  type Doc,
-  type DocumentQuery,
-  type Domain,
-  type IndexingConfiguration,
-  type Ref,
-  type Timestamp,
-  type Tx,
-  type TxCUD
-} from '@hcengineering/core'
-import {
-  ArrOf,
+  Account,
+  AttachedDoc,
+  Attribute,
+  Class,
   Collection,
-  Index,
+  Doc,
+  DocumentQuery,
   Mixin,
-  Model,
-  Prop,
-  TypeBoolean,
-  TypeIntlString,
-  TypeMarkup,
-  TypeRef,
-  TypeString,
-  TypeTimestamp,
-  UX,
-  type Builder
-} from '@hcengineering/model'
-import { TAttachedDoc, TClass, TDoc } from '@hcengineering/model-core'
-import preference, { TPreference } from '@hcengineering/model-preference'
-import view, { createAction } from '@hcengineering/model-view'
-import notification from '@hcengineering/notification'
-import type { Asset, IntlString, Resource } from '@hcengineering/platform'
-import { type AnyComponent } from '@hcengineering/ui/src/types'
+  Ref,
+  type RelatedDocument,
+  Timestamp,
+  Tx,
+  TxCreateDoc,
+  TxCUD,
+  TxMixin,
+  TxUpdateDoc
+} from '@hcengineering/core'
+import type { Asset, IntlString, Plugin, Resource } from '@hcengineering/platform'
+import { plugin } from '@hcengineering/platform'
+import { Preference } from '@hcengineering/preference'
+import type { AnyComponent } from '@hcengineering/ui'
 
-import activity from './plugin'
-
-export { activityId } from '@hcengineering/activity'
-export { activityOperation } from './migration'
-
-export const DOMAIN_ACTIVITY = 'activity' as Domain
-
-@Mixin(activity.mixin.ActivityDoc, core.class.Class)
-export class TActivityDoc extends TClass implements ActivityDoc {
-  preposition?: IntlString
-}
-
-@Mixin(activity.mixin.ActivityAttributeUpdatesPresenter, core.class.Class)
-export class TActivityAttributeUpdatesPresenter extends TClass implements ActivityAttributeUpdatesPresenter {
-  presenter!: AnyComponent
-}
-
-@Mixin(activity.mixin.IgnoreActivity, core.class.Class)
-export class TIgnoreActivity extends TClass implements IgnoreActivity {}
-
-@Model(activity.class.TxViewlet, core.class.Doc, DOMAIN_MODEL)
-export class TTxViewlet extends TDoc implements TxViewlet {
-  icon!: Asset
-  objectClass!: Ref<Class<Doc>>
-  txClass!: Ref<Class<Tx>>
+// TODO: remove TxViewlet
+/**
+ * Define an display for all transaction kinds for particular class.
+ * @public
+ */
+export interface TxViewlet extends Doc {
+  icon: Asset
+  objectClass: Ref<Class<Doc>>
+  txClass: Ref<Class<Tx>>
   // Component to display on.
-  component!: AnyComponent
+  component?: AnyComponent
+
+  // If defined, will be added to label displayed
+  labelComponent?: AnyComponent
+
   // Filter
   match?: DocumentQuery<Tx>
-  label!: IntlString
-  display!: 'inline' | 'content' | 'emphasized'
-  editable!: boolean
-  hideOnRemove!: boolean
+
+  // Label will be displayed right after author
+  label?: IntlString
+  labelParams?: any
+  // Do component need to be emphasized or not.
+  display: 'inline' | 'content' | 'emphasized'
+
+  // If defined and true, will show context menu with Edit action, and will pass 'edit:true' to viewlet properties.
+  editable?: boolean
+
+  // If defined and true, will hide all transactions from object in case it is deleted.
+  hideOnRemove?: boolean
 }
 
-@Model(activity.class.ActivityMessage, core.class.AttachedDoc, DOMAIN_ACTIVITY)
-export class TActivityMessage extends TAttachedDoc implements ActivityMessage {
-  @Prop(TypeBoolean(), activity.string.Pinned)
-    isPinned?: boolean
+// TODO: remove DisplayTx
+/**
+ * Transaction being displayed.
+ * @public
+ */
+export interface DisplayTx {
+  // Source tx
+  tx: TxCUD<Doc>
 
-  @Prop(ArrOf(TypeRef(contact.class.Person)), contact.string.Person)
-    repliedPersons?: Ref<Person>[]
+  // A set of collapsed transactions.
+  txes: DisplayTx[]
+  txDocIds?: Set<Ref<Doc>>
 
-  @Prop(TypeTimestamp(), activity.string.LastReply)
-  // @Index(IndexKind.Indexed)
-    lastReply?: Timestamp
+  // type check for createTx
+  createTx?: TxCreateDoc<Doc>
 
-  @Prop(Collection(activity.class.Reaction), activity.string.Reactions)
-    reactions?: number
+  // Type check for updateTx
+  updateTx?: TxUpdateDoc<Doc>
 
-  @Prop(Collection(activity.class.ActivityMessage), activity.string.Replies)
-    replies?: number
+  // Type check for updateTx
+  mixinTx?: TxMixin<Doc, Doc>
+
+  // Document in case it is required.
+  doc?: Doc
+  // Previous document in case it is required.
+  prevDoc?: Doc
+
+  updated: boolean
+  mixin: boolean
+  removed: boolean
+  isOwnTx: boolean
+
+  collectionAttribute?: Attribute<Collection<AttachedDoc>>
+  originTx: TxCUD<Doc>
 }
 
-@Model(activity.class.DocUpdateMessage, activity.class.ActivityMessage)
-export class TDocUpdateMessage extends TActivityMessage implements DocUpdateMessage {
-  @Prop(TypeRef(core.class.Doc), core.string.Object)
-  @Index(IndexKind.Indexed)
-    objectId!: Ref<Doc>
+/**
+ * @public
+ */
+export interface ActivityMessage extends AttachedDoc {
+  modifiedBy: Ref<Account>
+  modifiedOn: Timestamp
 
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-  // @Index(IndexKind.Indexed)
-    objectClass!: Ref<Class<Doc>>
+  isPinned?: boolean
 
-  @Prop(TypeRef(core.class.TxCUD), core.string.Object)
-  // @Index(IndexKind.Indexed)
-    txId!: Ref<TxCUD<Doc>>
+  repliedPersons?: Ref<Person>[]
+  lastReply?: Timestamp
 
-  @Prop(TypeString(), core.string.Object)
-  // @Index(IndexKind.Indexed)
-    action!: DocUpdateAction
+  replies?: number
+  reactions?: number
+}
 
+export type DisplayActivityMessage = DisplayDocUpdateMessage | ActivityMessage
+
+export interface DisplayDocUpdateMessage extends DocUpdateMessage {
+  previousMessages?: DocUpdateMessage[]
+  combinedMessagesIds?: Ref<DocUpdateMessage>[]
+}
+
+/**
+ * Designed to control and filter some of changes from being to be propagated into activity.
+ * @public
+ */
+export interface ActivityMessageControl<T extends Doc = Doc> extends Doc {
+  objectClass: Ref<Class<Doc>>
+
+  // A set of rules to be skipped from generate doc update activity messages
+  skip: DocumentQuery<Tx>[]
+
+  // Skip field activity operations.
+  skipFields?: (keyof T)[]
+}
+
+/**
+ *
+ * General information activity message.
+ * @public
+ */
+export interface ActivityInfoMessage extends ActivityMessage {
+  title?: IntlString
+  message: IntlString
+  props?: Record<string, any>
+  icon?: Asset
+  iconProps?: Record<string, any>
+
+  // A possible set of links to some platform resources.
+  links?: { _class: Ref<Class<Doc>>, _id: Ref<Doc> }[]
+}
+
+/**
+ * @public
+ */
+export interface DocUpdateMessage extends ActivityMessage {
+  objectId: Ref<Doc>
+  objectClass: Ref<Class<Doc>>
+
+  txId: Ref<TxCUD<Doc>>
+
+  action: DocUpdateAction
   updateCollection?: string
   attributeUpdates?: DocAttributeUpdates
 }
 
-@Model(activity.class.ActivityReference, activity.class.ActivityMessage)
-export class TActivityReference extends TActivityMessage implements ActivityReference {
-  // Source document we have reference from, it should be parent document for Comment/Message.
-  @Prop(TypeRef(core.class.Doc), core.string.Object)
-  // @Index(IndexKind.Indexed)
-    srcDocId!: Ref<Doc>
+export interface ActivityReference extends ActivityMessage {
+  // A mentioned document
+  // attachedTo: Ref<Doc>
+  // attachedToClass: Ref<Class<Doc>>
 
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-  // @Index(IndexKind.Indexed)
-    srcDocClass!: Ref<Class<Doc>>
+  // Source document we have reference from, it should be parent document for Comment/Message.
+  srcDocId: Ref<Doc>
+  srcDocClass: Ref<Class<Doc>>
 
   // Reference to comment/message in source doc
   attachedDocId?: Ref<Doc>
   attachedDocClass?: Ref<Class<Doc>>
 
-  @Prop(TypeMarkup(), activity.string.Message)
-  @Index(IndexKind.FullText)
-    message!: string
+  message: string
 }
 
-@Model(activity.class.ActivityInfoMessage, activity.class.ActivityMessage)
-export class TActivityInfoMessage extends TActivityMessage implements ActivityInfoMessage {
-  @Prop(TypeIntlString(), activity.string.Update)
-    message!: IntlString
-
-  props!: Record<string, any>
-  icon!: Asset
-  iconProps!: Record<string, any>
+/**
+ * @public
+ */
+export interface DocAttributeUpdates {
+  attrKey: string
+  attrClass: Ref<Class<Doc>>
+  set: (string | number | null)[]
+  prevValue?: any // Need for description diff
+  added: (string | number | null)[]
+  removed: (string | number | null)[]
+  isMixin: boolean
 }
 
-@Model(activity.class.ActivityMessageControl, core.class.Doc, DOMAIN_MODEL)
-export class TActivityMessageControl extends TDoc implements ActivityMessageControl {
-  objectClass!: Ref<Class<Doc>>
+export type DocUpdateAction = 'create' | 'update' | 'remove'
 
-  // A set of rules to be skipped from generate doc update activity messages
-  skip!: DocumentQuery<Tx>[]
-}
-
-@Model(activity.class.DocUpdateMessageViewlet, core.class.Doc, DOMAIN_MODEL)
-export class TDocUpdateMessageViewlet extends TDoc implements DocUpdateMessageViewlet {
-  @Prop(TypeRef(core.class.Doc), core.string.Class)
-  @Index(IndexKind.Indexed)
-    objectClass!: Ref<Class<Doc>>
-
-  @Prop(TypeString(), core.string.String)
-  @Index(IndexKind.Indexed)
-    action!: DocUpdateAction
-
-  label?: IntlString
-
-  valueAttr?: string
-
+export type DocUpdateMessageViewletAttributesConfig = Record<
+string,
+{
+  presenter?: AnyComponent
   icon?: Asset
-  component?: AnyComponent
-  config?: DocUpdateMessageViewletAttributesConfig
-  hideIfRemoved?: boolean
+  iconPresenter?: AnyComponent
+}
+>
+
+/**
+ * @public
+ */
+export interface ActivityMessageViewlet extends Doc {
+  objectClass: Ref<Class<Doc>>
   onlyWithParent?: boolean
 }
 
-@Model(activity.class.ActivityExtension, core.class.Doc, DOMAIN_MODEL)
-export class TActivityExtension extends TDoc implements ActivityExtension {
-  @Prop(TypeRef(core.class.Class), core.string.Class)
-  @Index(IndexKind.Indexed)
-    ofClass!: Ref<Class<Doc>>
+/**
+ * @public
+ */
+export interface DocUpdateMessageViewlet extends ActivityMessageViewlet {
+  action: DocUpdateAction
+  valueAttr?: string
 
-  components!: Record<ActivityExtensionKind, AnyComponent>
+  label?: IntlString
+
+  icon?: Asset
+  component?: AnyComponent
+
+  config?: DocUpdateMessageViewletAttributesConfig
+
+  hideIfRemoved?: boolean
 }
 
-@Model(activity.class.ActivityMessagesFilter, core.class.Doc, DOMAIN_MODEL)
-export class TActivityMessagesFilter extends TDoc implements ActivityMessagesFilter {
-  label!: IntlString
-  position!: number
-  filter!: Resource<(message: ActivityMessage, _class?: Ref<Doc>) => boolean>
+/**
+ * @public
+ */
+export const activityId = 'activity' as Plugin
+
+/**
+ * @public
+ */
+export interface ActivityMessagesFilter extends Doc {
+  label: IntlString
+  position: number
+  filter: Resource<(message: ActivityMessage, _class?: Ref<Doc>) => boolean>
 }
 
-@Model(activity.class.Reaction, core.class.AttachedDoc, DOMAIN_ACTIVITY)
-@UX(activity.string.Reactions)
-export class TReaction extends TAttachedDoc implements Reaction {
-  @Prop(TypeRef(activity.class.ActivityMessage), core.string.AttachedTo)
-  @Index(IndexKind.Indexed)
-  declare attachedTo: Ref<ActivityMessage>
-
-  @Prop(TypeRef(core.class.Class), core.string.AttachedToClass)
-  @Index(IndexKind.Indexed)
-  declare attachedToClass: Ref<Class<ActivityMessage>>
-
-  @Prop(TypeString(), activity.string.Emoji)
-    emoji!: string
-
-  @Prop(TypeRef(core.class.Account), view.string.Created)
-    createBy!: Ref<Account>
+/**
+ * @public
+ */
+export interface ActivityDoc extends Class<Doc> {
+  preposition?: IntlString
 }
 
-@Model(activity.class.SavedMessage, preference.class.Preference)
-export class TSavedMessage extends TPreference implements SavedMessage {
-  @Prop(TypeRef(activity.class.ActivityMessage), view.string.Save)
-  @Index(IndexKind.Indexed)
-  declare attachedTo: Ref<ActivityMessage>
+/**
+ * @public
+ */
+export interface ActivityAttributeUpdatesPresenter extends Class<Doc> {
+  presenter: AnyComponent
 }
 
-@Mixin(activity.mixin.ActivityMessagePreview, core.class.Class)
-export class TActivityMessagePreview extends TClass implements ActivityMessagePreview {
-  presenter!: AnyComponent
+export interface ActivityMessagePreview extends Class<Doc> {
+  presenter: AnyComponent
 }
 
-@Model(activity.class.ReplyProvider, core.class.Doc, DOMAIN_MODEL)
-export class TReplyProvider extends TDoc implements ReplyProvider {
-  function!: Resource<(message: ActivityMessage) => Promise<void>>
+/**
+ * @public
+ */
+export type ActivityExtensionKind = 'input'
+
+/**
+ * @public
+ */
+export interface ActivityExtension extends Doc {
+  ofClass: Ref<Class<Doc>>
+  components: Record<ActivityExtensionKind, AnyComponent>
 }
 
-export function createModel (builder: Builder): void {
-  builder.createModel(
-    TTxViewlet,
-    TActivityDoc,
-    TActivityMessagesFilter,
-    TActivityMessage,
-    TDocUpdateMessage,
-    TDocUpdateMessageViewlet,
-    TActivityExtension,
-    TReaction,
-    TActivityAttributeUpdatesPresenter,
-    TActivityInfoMessage,
-    TActivityMessageControl,
-    TSavedMessage,
-    TIgnoreActivity,
-    TActivityReference,
-    TActivityMessagePreview,
-    TReplyProvider
-  )
-
-  builder.mixin(activity.class.DocUpdateMessage, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: activity.component.DocUpdateMessagePresenter
-  })
-
-  builder.mixin(activity.class.ActivityInfoMessage, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: activity.component.ActivityInfoMessagePresenter
-  })
-
-  builder.mixin(activity.class.ActivityReference, core.class.Class, view.mixin.ObjectPresenter, {
-    presenter: activity.component.ActivityReferencePresenter
-  })
-
-  builder.mixin(activity.class.DocUpdateMessage, core.class.Class, activity.mixin.ActivityMessagePreview, {
-    presenter: activity.component.DocUpdateMessagePreview
-  })
-
-  builder.mixin(activity.class.ActivityInfoMessage, core.class.Class, activity.mixin.ActivityMessagePreview, {
-    presenter: activity.component.ActivityInfoMessagePreview
-  })
-
-  builder.mixin(activity.class.ActivityReference, core.class.Class, activity.mixin.ActivityMessagePreview, {
-    presenter: activity.component.ActivityReferencePreview
-  })
-
-  builder.createDoc(
-    activity.class.ActivityMessagesFilter,
-    core.space.Model,
-    {
-      label: activity.string.All,
-      position: 10,
-      filter: activity.filter.AllFilter
-    },
-    activity.ids.AllFilter
-  )
-
-  builder.createDoc(activity.class.ActivityMessagesFilter, core.space.Model, {
-    label: activity.string.Attributes,
-    position: 10,
-    filter: activity.filter.AttributesFilter
-  })
-
-  builder.createDoc(activity.class.ActivityMessagesFilter, core.space.Model, {
-    label: activity.string.Pinned,
-    position: 20,
-    filter: activity.filter.PinnedFilter
-  })
-
-  builder.createDoc(activity.class.ActivityMessagesFilter, core.space.Model, {
-    label: activity.string.Mentions,
-    position: 60,
-    filter: activity.filter.ReferencesFilter
-  })
-
-  builder.createDoc(
-    activity.class.DocUpdateMessageViewlet,
-    core.space.Model,
-    {
-      objectClass: activity.class.Reaction,
-      action: 'create',
-      component: activity.component.ReactionPresenter,
-      label: activity.string.Reacted,
-      onlyWithParent: true
-    },
-    activity.ids.ReactionAddedActivityViewlet
-  )
-
-  builder.mixin(activity.class.ActivityMessage, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['createdBy', 'repliedPersons']
-  })
-
-  builder.mixin(activity.class.DocUpdateMessage, core.class.Class, notification.mixin.ClassCollaborators, {
-    fields: ['createdBy', 'repliedPersons']
-  })
-
-  builder.mixin(activity.class.ActivityMessage, core.class.Class, view.mixin.ObjectPanel, {
-    component: view.component.AttachedDocPanel
-  })
-
-  builder.mixin(activity.class.ActivityMessage, core.class.Class, notification.mixin.NotificationContextPresenter, {
-    labelPresenter: activity.component.ActivityMessageNotificationLabel
-  })
-
-  builder.mixin<Class<DocUpdateMessage>, IndexingConfiguration<DocUpdateMessage>>(
-    activity.class.DocUpdateMessage,
-    core.class.Class,
-    core.mixin.IndexConfiguration,
-    {
-      searchDisabled: true,
-      indexes: []
-    }
-  )
-
-  builder.mixin<Class<DocUpdateMessage>, IndexingConfiguration<DocUpdateMessage>>(
-    activity.class.Reaction,
-    core.class.Class,
-    core.mixin.IndexConfiguration,
-    {
-      searchDisabled: true,
-      indexes: []
-    }
-  )
-
-  builder.createDoc(
-    notification.class.NotificationType,
-    core.space.Model,
-    {
-      hidden: false,
-      generated: false,
-      label: activity.string.Reactions,
-      group: activity.ids.ActivityNotificationGroup,
-      txClasses: [core.class.TxCreateDoc],
-      objectClass: activity.class.Reaction,
-      providers: {
-        [notification.providers.PlatformNotification]: true,
-        [notification.providers.BrowserNotification]: false
-      }
-    },
-    activity.ids.AddReactionNotification
-  )
-
-  builder.createDoc(core.class.DomainIndexConfiguration, core.space.Model, {
-    domain: DOMAIN_ACTIVITY,
-    indexes: [
-      { attachedTo: 1, createdOn: 1 },
-      { attachedTo: 1, createdOn: -1 }
-    ],
-    disabled: [
-      { modifiedOn: 1 },
-      { createdOn: -1 },
-      { space: 1 },
-      { modifiedBy: 1 },
-      { createdBy: 1 },
-      { attachedToClass: 1 }
-    ]
-  })
-
-  createAction(
-    builder,
-    {
-      action: activity.actionImpl.AddReaction,
-      label: activity.string.AddReaction,
-      icon: activity.icon.Emoji,
-      input: 'focus',
-      category: activity.category.Activity,
-      target: activity.class.ActivityMessage,
-      inline: true,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    activity.ids.AddReactionAction
-  )
-
-  createAction(
-    builder,
-    {
-      action: activity.actionImpl.SaveForLater,
-      label: activity.string.SaveForLater,
-      icon: activity.icon.Bookmark,
-      input: 'focus',
-      inline: true,
-      actionProps: {
-        size: 'x-small'
-      },
-      category: activity.category.Activity,
-      target: activity.class.ActivityMessage,
-      visibilityTester: activity.function.CanSaveForLater,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    activity.ids.SaveForLaterAction
-  )
-
-  createAction(
-    builder,
-    {
-      action: activity.actionImpl.RemoveFromSaved,
-      label: activity.string.RemoveFromLater,
-      icon: activity.icon.BookmarkFilled,
-      input: 'focus',
-      inline: true,
-      actionProps: {
-        iconProps: {
-          fill: 'var(--global-accent-TextColor)'
-        }
-      },
-      category: activity.category.Activity,
-      target: activity.class.ActivityMessage,
-      visibilityTester: activity.function.CanRemoveFromSaved,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    activity.ids.RemoveFromLaterAction
-  )
-
-  createAction(
-    builder,
-    {
-      action: activity.actionImpl.PinMessage,
-      label: view.string.Pin,
-      icon: view.icon.Pin,
-      input: 'focus',
-      inline: true,
-      category: activity.category.Activity,
-      target: activity.class.ActivityMessage,
-      visibilityTester: activity.function.CanPinMessage,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    activity.ids.PinMessageAction
-  )
-
-  createAction(
-    builder,
-    {
-      action: activity.actionImpl.UnpinMessage,
-      label: view.string.Unpin,
-      icon: view.icon.Pin,
-      input: 'focus',
-      inline: true,
-      actionProps: {
-        iconProps: {
-          fill: 'var(--global-accent-TextColor)'
-        }
-      },
-      category: activity.category.Activity,
-      target: activity.class.ActivityMessage,
-      visibilityTester: activity.function.CanUnpinMessage,
-      context: {
-        mode: 'context',
-        group: 'edit'
-      }
-    },
-    activity.ids.UnpinMessageAction
-  )
+/**
+ * @public
+ */
+export interface Reaction extends AttachedDoc {
+  attachedTo: Ref<ActivityMessage>
+  attachedToClass: Ref<Class<ActivityMessage>>
+  emoji: string
+  createBy: Ref<Account>
 }
 
-export default activity
+/**
+ * @public
+ */
+export interface SavedMessage extends Preference {
+  attachedTo: Ref<ActivityMessage>
+}
+
+export interface ReplyProvider extends Doc {
+  function: Resource<(message: ActivityMessage) => Promise<void>>
+}
+
+/**
+ * @public
+ */
+export interface IgnoreActivity extends Class<Doc> {}
+
+export type ActivityMessagePreviewType = 'full' | 'content-only'
+
+export default plugin(activityId, {
+  mixin: {
+    ActivityDoc: '' as Ref<Mixin<ActivityDoc>>,
+    ActivityAttributeUpdatesPresenter: '' as Ref<Mixin<ActivityAttributeUpdatesPresenter>>,
+    ActivityMessagePreview: '' as Ref<Mixin<ActivityMessagePreview>>,
+    IgnoreActivity: '' as Ref<Mixin<IgnoreActivity>>
+  },
+  class: {
+    TxViewlet: '' as Ref<Class<TxViewlet>>,
+    DocUpdateMessage: '' as Ref<Class<DocUpdateMessage>>,
+    ActivityMessage: '' as Ref<Class<ActivityMessage>>,
+    ActivityInfoMessage: '' as Ref<Class<ActivityInfoMessage>>,
+    ActivityMessageControl: '' as Ref<Class<ActivityMessageControl>>,
+    DocUpdateMessageViewlet: '' as Ref<Class<DocUpdateMessageViewlet>>,
+    ActivityMessagesFilter: '' as Ref<Class<ActivityMessagesFilter>>,
+    ActivityExtension: '' as Ref<Class<ActivityExtension>>,
+    Reaction: '' as Ref<Class<Reaction>>,
+    SavedMessage: '' as Ref<Class<SavedMessage>>,
+    ActivityReference: '' as Ref<Class<ActivityReference>>,
+    ReplyProvider: '' as Ref<Class<ReplyProvider>>
+  },
+  icon: {
+    Activity: '' as Asset,
+    Emoji: '' as Asset,
+    Bookmark: '' as Asset,
+    BookmarkFilled: '' as Asset
+  },
+  string: {
+    Activity: '' as IntlString,
+    Added: '' as IntlString,
+    Changed: '' as IntlString,
+    Edited: '' as IntlString,
+    From: '' as IntlString,
+    Removed: '' as IntlString,
+    To: '' as IntlString,
+    Unset: '' as IntlString,
+    In: '' as IntlString,
+    At: '' as IntlString,
+    NewestFirst: '' as IntlString,
+    Edit: '' as IntlString,
+    Updated: '' as IntlString,
+    Created: '' as IntlString,
+    UpdatedCollection: '' as IntlString,
+    New: '' as IntlString,
+    Set: '' as IntlString,
+    Update: '' as IntlString,
+    For: '' as IntlString,
+    AllActivity: '' as IntlString,
+    Reaction: '' as IntlString,
+    Reactions: '' as IntlString,
+    LastReply: '' as IntlString,
+    RepliesCount: '' as IntlString,
+    Reacted: '' as IntlString,
+    Message: '' as IntlString,
+    Mentioned: '' as IntlString,
+    You: '' as IntlString,
+    Mentions: '' as IntlString,
+    MentionedYouIn: '' as IntlString,
+    Messages: '' as IntlString,
+    Thread: '' as IntlString
+  },
+  component: {
+    Activity: '' as AnyComponent,
+    ActivityMessagePresenter: '' as AnyComponent,
+    DocUpdateMessagePresenter: '' as AnyComponent,
+    ActivityInfoMessagePresenter: '' as AnyComponent,
+    ReactionPresenter: '' as AnyComponent,
+    ActivityMessageNotificationLabel: '' as AnyComponent,
+    ActivityReferencePresenter: '' as AnyComponent,
+    DocUpdateMessagePreview: '' as AnyComponent,
+    ActivityReferencePreview: '' as AnyComponent,
+    ActivityInfoMessagePreview: '' as AnyComponent
+  },
+  ids: {
+    AllFilter: '' as Ref<ActivityMessagesFilter>,
+    MentionNotification: '' as Ref<Doc>
+  },
+  backreference: {
+    // Update list of back references
+    Update: '' as Resource<(source: Doc, key: string, target: RelatedDocument[], label: IntlString) => Promise<void>>
+  }
+})
